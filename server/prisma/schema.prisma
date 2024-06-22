@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     Int             @id @default(autoincrement())
+  userId                 String          @unique
+  deviceId               String
+  name                   String
+  phone                  String          @unique
+  availCoins             Int             @default(150)
+  password               String
+  isPrime                Boolean         @default(false)
+  createdRooms           Room[]          @relation("CreatedRooms")
+  messages               Message[]
+  friendRequestsSent     FriendRequest[] @relation("SentRequests")
+  friendRequestsReceived FriendRequest[] @relation("ReceivedRequests")
+  totalRoomJoined        Int             @default(0)
+  joinedRooms            RoomUser[]
+  invites                Json            @default("[]")
+}
+
+model Room {
+  id        Int        @id @default(autoincrement())
+  roomId    String     @unique
+  users     RoomUser[]
+  creatorId Int
+  chats     Json       @default("[]")
+  creator   User       @relation("CreatedRooms", fields: [creatorId], references: [id])
+  messages  Message[]
+}
+
+model RoomUser {
+  userId Int
+  roomId Int
+
+  user User @relation(fields: [userId], references: [id])
+  room Room @relation(fields: [roomId], references: [id])
+
+  @@id([userId, roomId])
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  roomId    Int
+  userId    Int
+  message   String
+  timestamp DateTime @default(now())
+  room      Room     @relation(fields: [roomId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model FriendRequest {
+  id         Int    @id @default(autoincrement())
+  senderId   Int
+  receiverId Int
+  status     String @default("pending")
+  sender     User   @relation("SentRequests", fields: [senderId], references: [id])
+  receiver   User   @relation("ReceivedRequests", fields: [receiverId], references: [id])
+}
